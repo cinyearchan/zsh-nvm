@@ -69,6 +69,8 @@ _zsh_nvm_load() {
         ;;
     esac
   }
+
+  _diy_nvm_auto_use
 }
 
 _zsh_nvm_completion() {
@@ -200,6 +202,10 @@ _zsh_nvm_install_wrapper() {
       _zsh_nvm_nvm "$@"
       ;;
   esac
+}
+
+_diy_nvm_auto_use() {
+  [[ "$NVM_AUTO_USE" == true ]] && _zsh_nvm_auto_use
 }
 
 # Don't init anything if this is true (debug/testing only)
