@@ -64,6 +64,12 @@ _zsh_nvm_load() {
       'install' | 'i')
         _zsh_nvm_install_wrapper "$@"
         ;;
+      'link')
+        _zsh_nvm_custom_link
+        ;;
+      'break')
+        _zsh_nvm_custom_break
+        ;;
       *)
         _zsh_nvm_nvm "$@"
         ;;
@@ -202,6 +208,82 @@ _zsh_nvm_install_wrapper() {
       _zsh_nvm_nvm "$@"
       ;;
   esac
+}
+
+_zsh_nvm_custom_link() {
+  echo "link"
+  # 判断 nvm 中默认版本是否存在
+  local defaultVersion="$(nvm version default)"
+  if [[ "$defaultVersion" = "N/A" ]]; then
+    echo "Please set default node version first!"
+    return
+  fi
+  # 需要先判断 /usr/local/bin/npm+node+npx 是否存在
+  if [[ -h /usr/local/bin/node ]] && [[ -h /usr/local/bin/npm ]] && [[ -h /usr/local/bin/npx ]]; then
+    # echo "exist"
+    local sysNodeLinkPath="$(readlink /usr/local/bin/node)"
+    local sysNpmLinkPath="$(readlink /usr/local/bin/npm)"
+    local sysNpxLinkPath="$(readlink /usr/local/bin/npx)"
+    # 判断系统软链接是否指向默认版本
+    # echo "judge"
+    local defaultVersionPath="$(echo $NVM_DIR/versions/node/$defaultVersion/bin)"
+    echo "$defaultVersion"
+    echo "$defaultVersionPath"
+    echo "$sysNodeLinkPath"
+    echo "$sysNpmLinkPath"
+    echo "$sysNpxLinkPath"
+    if [[ "$sysNodeLinkPath" != "$(echo $defaultVersionPath/node)" ]] || [[ "$sysNpmLinkPath" != "$(echo $defaultVersionPath/npm)" ]] || [[ "$sysNpxLinkPath" != "$(echo $defaultVersionPath)/npx" ]]; then
+      # echo "rewrite"
+      _zsh_nvm_rm_syslink
+      _zsh_nvm_rewrite_sys
+    else
+      echo "Already linked"
+    fi
+  else ## 不存在的话
+    # echo 'not exist'
+    # echo 'band'
+    _zsh_nvm_rewrite_sys
+  fi
+}
+
+_zsh_nvm_rm_syslink() {
+  command rm /usr/local/bin/node
+  command rm /usr/local/bin/npm
+  command rm /usr/local/bin/npx
+}
+
+_zsh_nvm_rewrite_sys() {
+  #local defaultVersion="$(nvm version default)"
+  #local defaultVersionPath=""
+  echo 'rewrite'
+  command ln -s "$NVM_DIR/versions/node/$(nvm version default)/bin/node" "/usr/local/bin/node" > /dev/null 2>&1
+  command ln -s "$NVM_DIR/versions/node/$(nvm version default)/bin/npm" "/usr/local/bin/npm" > /dev/null 2>&1
+  command ln -s "$NVM_DIR/versions/node/$(nvm version default)/bin/npx" "/usr/local/bin/npx" > /dev/null 2>&1
+  echo 'done'
+  return 0
+}
+
+_zsh_nvm_custom_break() {
+  # echo 'break'
+  local defaultVersion="$(nvm version default)"
+  local sysNodeLinkPath="$(readlink /usr/local/bin/node)"
+  local sysNpmLinkPath="$(readlink /usr/local/bin/npm)"
+  local sysNpxLinkPath="$(readlink /usr/local/bin/npx)"
+  local defaultVersionPath="$(echo $NVM_DIR/versions/node/$defaultVersion/bin)"
+  # echo "$(echo $defaultVersionPath/node)"
+  if [[ "$sysNodeLinkPath" == "$(echo $defaultVersionPath/node)" ]]; then
+    command rm /usr/local/bin/node
+    echo "rm system node"
+  fi
+  if [[ "$sysNpmLinkPath" == "$(echo $defaultVersionPath/npm)" ]]; then
+    command rm /usr/local/bin/npm
+    echo "rm system npm"
+  fi
+  if [[ "$sysNpxLinkPath" == "$(echo $defaultVersionPath/npx)" ]]; then
+    command rm /usr/local/bin/npx
+    echo "rm system npx"
+  fi
+  echo "done"
 }
 
 _diy_nvm_auto_use() {
